@@ -13,7 +13,7 @@ app.use(cors({
         'http://localhost:3000', 
         'http://localhost:5000',
         'http://127.0.0.1:5500',
-        '*'  // Permite qualquer origem (temporariamente)
+        '*'
     ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
@@ -42,7 +42,7 @@ function createConnectionPool() {
     connectionPool = mysql.createPool({
         ...dbConfig,
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 5,
         queueLimit: 0
     });
     
@@ -62,6 +62,7 @@ async function checkConnection(req, res, next) {
     } catch (error) {
         console.error('❌ Erro na conexão MySQL:', error);
         res.status(500).json({ 
+            success: false,
             error: 'Erro de conexão com banco de dados',
             details: error.message 
         });
@@ -104,7 +105,7 @@ app.get('/health', async (req, res) => {
 // GET - Buscar todos os registros ou pesquisar
 app.get('/api/registros', checkConnection, async (req, res) => {
     try {
-        const { search, limit = 100, offset = 0 } = req.query;
+        const { search } = req.query;
         
         let sql = 'SELECT * FROM registros';
         let params = [];
@@ -121,19 +122,14 @@ app.get('/api/registros', checkConnection, async (req, res) => {
             params = [searchTerm, searchTerm, searchTerm, searchTerm, searchTerm, searchTerm];
         }
         
-        sql += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
-        params.push(parseInt(limit), parseInt(offset));
+        sql += ' ORDER BY id DESC';
         
         const [rows] = await connectionPool.execute(sql, params);
         
         res.json({
             success: true,
             data: rows,
-            count: rows.length,
-            pagination: {
-                limit: parseInt(limit),
-                offset: parseInt(offset)
-            }
+            count: rows.length
         });
     } catch (error) {
         console.error('Erro ao buscar registros:', error);
@@ -248,8 +244,7 @@ app.put('/api/registros/:id', checkConnection, async (req, res) => {
             lote=?, anuncio=?, cliente=?, telefone=?, marca=?, modelo=?, ano=?, placa=?,
             autorizacao=?, banco=?, pagamento=?, agendamento=?, retirada=?, retirado=?,
             data_pagamento=?, atpv=?, nome_cv=?, prazo_atpv=?, atpv_entregue=?,
-            data_evento=?, custo=?, venda=?, comissao=?, valor_comissao=?, lucro=?,
-            updated_at=CURRENT_TIMESTAMP
+            data_evento=?, custo=?, venda=?, comissao=?, valor_comissao=?, lucro=?
             WHERE id=?`;
         
         const [result] = await connectionPool.execute(sql, [
@@ -321,9 +316,7 @@ app.get('/api/estatisticas', checkConnection, async (req, res) => {
                 COUNT(*) as total_registros,
                 COALESCE(SUM(venda), 0) as total_vendas,
                 COALESCE(SUM(valor_comissao), 0) as total_comissoes,
-                COALESCE(SUM(lucro), 0) as total_lucro,
-                COALESCE(AVG(venda), 0) as media_vendas,
-                COALESCE(AVG(comissao), 0) as media_comissao
+                COALESCE(SUM(lucro), 0) as total_lucro
             FROM registros
         `);
         
@@ -336,27 +329,6 @@ app.get('/api/estatisticas', checkConnection, async (req, res) => {
         res.status(500).json({ 
             success: false,
             error: 'Erro ao buscar estatísticas',
-            details: error.message 
-        });
-    }
-});
-
-// POST - Backup dos dados
-app.get('/api/backup', checkConnection, async (req, res) => {
-    try {
-        const [rows] = await connectionPool.execute('SELECT * FROM registros ORDER BY id');
-        
-        res.json({
-            success: true,
-            backup_date: new Date().toISOString(),
-            total_records: rows.length,
-            data: rows
-        });
-    } catch (error) {
-        console.error('Erro ao fazer backup:', error);
-        res.status(500).json({ 
-            success: false,
-            error: 'Erro ao fazer backup',
             details: error.message 
         });
     }
