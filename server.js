@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors({
-    origin: ['https://seu-site.netlify.app', 'http://localhost:3000', '*'],
+    origin: ['stellar-paprenjak-3b01e7.netlify.app', 'http://localhost:3000', '*'],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
