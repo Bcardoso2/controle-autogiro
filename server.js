@@ -8,9 +8,16 @@ const PORT = process.env.PORT || 3000;
 
 // Middlewares
 app.use(cors({
-    origin: ['stellar-paprenjak-3b01e7.netlify.app', 'http://localhost:3000', '*'],
+    origin: [
+        'https://stellar-paprenjak-3b01e7.netlify.app',
+        'http://localhost:3000', 
+        'http://localhost:5000',
+        'http://127.0.0.1:5500',
+        '*'  // Permite qualquer origem (temporariamente)
+    ],
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
 }));
 
 app.use(express.json({ limit: '10mb' }));
